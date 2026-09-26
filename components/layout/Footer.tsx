@@ -10,27 +10,39 @@ export async function Footer() {
     primary_phone: string | null
     whatsapp: string | null
     office_hours: string | null
-  } = {
-    company_name: 'Power Equipments',
-    tagline: 'Electrical & Industrial Solutions',
-    email: 'contact@powerequipments.in',
-    primary_phone: '+91 755 400 0001',
-    whatsapp: '+91 98765 43210',
-    office_hours: 'Mon–Sat: 9:30 AM – 6:30 PM',
-  }
+  } | null = null
+  let categories: { name: string; slug: string }[] = []
+  let offices: { name: string | null; address: string | null; city: string | null; state: string | null }[] = []
 
   try {
     const supabase = await createClient()
-    const { data } = await supabase
-      .from('company_settings')
-      .select('company_name,tagline,email,primary_phone,whatsapp,office_hours')
-      .limit(1)
-      .single()
+    const [companyResult, catsResult, officesResult] = await Promise.all([
+      supabase
+        .from('company_settings')
+        .select('company_name,tagline,email,primary_phone,whatsapp,office_hours')
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('categories')
+        .select('name, slug')
+        .eq('is_active', true)
+        .order('sort_order')
+        .limit(8),
+      supabase
+        .from('offices')
+        .select('name, address, city, state')
+        .eq('is_active', true)
+        .order('sort_order')
+        .limit(2),
+    ])
 
-    if (data) company = { ...company, ...data }
+    company = companyResult.data ?? null
+    categories = companyResult.error ? [] : (catsResult.data ?? [])
+    offices = companyResult.error ? [] : (officesResult.data ?? [])
   } catch {}
 
   const currentYear = new Date().getFullYear()
+  const companyName = company?.company_name || 'Power Equipments'
 
   return (
     <footer style={{ background: 'var(--color-navy-950)', color: 'var(--color-neutral-300)' }}>
@@ -48,11 +60,13 @@ export async function Footer() {
               </div>
               <div>
                 <span className="block font-bold text-sm text-white" style={{ fontFamily: 'var(--font-display)' }}>
-                  {company.company_name}
+                  {companyName}
                 </span>
-                <span className="block text-xs" style={{ color: 'var(--color-neutral-400)' }}>
-                  {company.tagline}
-                </span>
+                {company?.tagline && (
+                  <span className="block text-xs" style={{ color: 'var(--color-neutral-400)' }}>
+                    {company.tagline}
+                  </span>
+                )}
               </div>
             </Link>
             <p className="text-sm leading-relaxed" style={{ color: 'var(--color-neutral-400)' }}>
@@ -89,24 +103,29 @@ export async function Footer() {
           <div>
             <h3 className="text-white text-sm font-semibold mb-4 uppercase tracking-wider">Products</h3>
             <ul className="flex flex-col gap-2.5">
-              {[
-                'VFDs & Drives',
-                'Electric Motors',
-                'LED Lighting',
-                'Wires & Cables',
-                'Switchgears',
-                'Industrial Panels',
-              ].map((item) => (
-                <li key={item}>
+              {categories.length > 0 ? (
+                categories.map((cat) => (
+                  <li key={cat.slug}>
+                    <Link
+                      href={`/products/category/${cat.slug}`}
+                      className="text-sm transition-colors hover:text-white"
+                      style={{ color: 'var(--color-neutral-400)' }}
+                    >
+                      {cat.name}
+                    </Link>
+                  </li>
+                ))
+              ) : (
+                <li>
                   <Link
                     href="/products"
                     className="text-sm transition-colors hover:text-white"
                     style={{ color: 'var(--color-neutral-400)' }}
                   >
-                    {item}
+                    Browse All Products
                   </Link>
                 </li>
-              ))}
+              )}
             </ul>
           </div>
 
@@ -114,7 +133,7 @@ export async function Footer() {
           <div>
             <h3 className="text-white text-sm font-semibold mb-4 uppercase tracking-wider">Contact</h3>
             <ul className="flex flex-col gap-3">
-              {company.primary_phone && (
+              {company?.primary_phone && (
                 <li>
                   <a
                     href={`tel:${company.primary_phone.replace(/\s/g, '')}`}
@@ -126,7 +145,7 @@ export async function Footer() {
                   </a>
                 </li>
               )}
-              {company.email && (
+              {company?.email && (
                 <li>
                   <a
                     href={`mailto:${company.email}`}
@@ -138,13 +157,23 @@ export async function Footer() {
                   </a>
                 </li>
               )}
-              <li>
-                <div className="flex items-center gap-2.5 text-sm" style={{ color: 'var(--color-neutral-400)' }}>
-                  <MapPin size={14} className="shrink-0" style={{ color: 'var(--color-blue-400)' }} />
-                  Bhopal &amp; Indore, Madhya Pradesh
-                </div>
-              </li>
-              {company.office_hours && (
+              {offices.length > 0 && (
+                <li>
+                  <div className="flex items-start gap-2.5 text-sm" style={{ color: 'var(--color-neutral-400)' }}>
+                    <MapPin size={14} className="shrink-0 mt-0.5" style={{ color: 'var(--color-blue-400)' }} />
+                    <span>
+                      {offices.map((office, i) => (
+                        <span key={i}>
+                          {office.city || office.name}
+                          {i < offices.length - 1 ? ', ' : ''}
+                        </span>
+                      ))}
+                      , India
+                    </span>
+                  </div>
+                </li>
+              )}
+              {company?.office_hours && (
                 <li>
                   <div className="flex items-center gap-2.5 text-sm" style={{ color: 'var(--color-neutral-400)' }}>
                     <Clock size={14} className="shrink-0" style={{ color: 'var(--color-blue-400)' }} />
@@ -160,7 +189,7 @@ export async function Footer() {
       {/* Bottom bar */}
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
         <div className="container-site py-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs" style={{ color: 'var(--color-neutral-500)' }}>
-          <span>© {currentYear} {company.company_name}. All rights reserved.</span>
+          <span>© {currentYear} {companyName}. All rights reserved.</span>
           <span>Electrical &amp; Industrial Solutions — Central India</span>
         </div>
       </div>

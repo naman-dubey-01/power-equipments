@@ -10,23 +10,25 @@ type Category = Database['public']['Tables']['categories']['Row']
 
 interface HeaderProps {
   categories?: Category[]
+  phone?: string | null
+  companyName?: string | null
 }
 
-const navLinks = [
-  { label: 'Home', href: '/' },
-  { label: 'About Us', href: '/about' },
-  { label: 'Gallery', href: '/gallery' },
-  { label: 'Certificate', href: '/certificates' },
-  { label: 'Contact Us', href: '/contact' },
-]
-
-export function HeaderClient({ categories = [] }: HeaderProps) {
+export function HeaderClient({ categories = [], phone, companyName }: HeaderProps) {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [mobileProductsOpen, setMobileProductsOpen] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const [prevPath, setPrevPath] = useState(pathname)
+
+  // Adjust state during render when the route changes, avoiding an effect update.
+  if (prevPath !== pathname) {
+    setPrevPath(pathname)
+    setMobileOpen(false)
+    setDropdownOpen(false)
+  }
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8)
@@ -39,11 +41,6 @@ export function HeaderClient({ categories = [] }: HeaderProps) {
     else document.body.style.overflow = ''
     return () => { document.body.style.overflow = '' }
   }, [mobileOpen])
-
-  useEffect(() => {
-    setMobileOpen(false)
-    setDropdownOpen(false)
-  }, [pathname])
 
   const handleClickOutside = useCallback((e: MouseEvent) => {
     if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -67,10 +64,10 @@ export function HeaderClient({ categories = [] }: HeaderProps) {
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 ${
         scrolled
-          ? 'bg-white/98 backdrop-blur-sm shadow-md border-b border-neutral-200'
-          : 'bg-white border-b border-neutral-100'
+          ? 'bg-navy-950/95 backdrop-blur-sm shadow-lg border-b border-white/10'
+          : 'bg-navy-950 border-b border-white/5'
       }`}
-      style={{ height: 'var(--header-height)' }}
+      style={{ height: 'var(--header-height)', background: 'var(--color-navy-950)' }}
     >
       <div className="container-site h-full flex items-center justify-between gap-6">
         {/* Logo */}
@@ -82,24 +79,24 @@ export function HeaderClient({ categories = [] }: HeaderProps) {
             <Zap size={18} strokeWidth={2.5} style={{ color: '#f0a500' }} />
           </div>
           <div className="leading-tight">
-            <span className="block font-bold text-sm" style={{ color: 'var(--color-navy-900)', fontFamily: 'var(--font-display)' }}>
-              Power Equipments
+            <span className="block font-bold text-sm text-white" style={{ fontFamily: 'var(--font-display)' }}>
+              {companyName || 'Power Equipments'}
             </span>
-            <span className="block text-xs" style={{ color: 'var(--color-text-muted)' }}>
+            <span className="block text-xs text-slate-300 tracking-wide">
               Electrical &amp; Industrial
             </span>
           </div>
         </Link>
 
         {/* Desktop Nav */}
-        <nav className="hidden lg:flex items-center gap-1" aria-label="Main navigation">
+        <nav className="hidden lg:flex items-center gap-3" aria-label="Main navigation">
           {/* Home */}
           <Link
             href="/"
-            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 ${
+            className={`px-3.5 py-2 rounded-md text-sm font-medium tracking-wide transition-colors duration-150 ${
               isActive('/') && pathname === '/'
-                ? 'text-blue-600 bg-blue-50'
-                : 'text-neutral-700 hover:text-blue-600 hover:bg-neutral-50'
+                ? 'text-white bg-white/15'
+                : 'text-white hover:text-white hover:bg-white/10'
             }`}
           >
             Home
@@ -108,10 +105,10 @@ export function HeaderClient({ categories = [] }: HeaderProps) {
           {/* About */}
           <Link
             href="/about"
-            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 ${
+            className={`px-3.5 py-2 rounded-md text-sm font-medium tracking-wide transition-colors duration-150 ${
               isActive('/about')
-                ? 'text-blue-600 bg-blue-50'
-                : 'text-neutral-700 hover:text-blue-600 hover:bg-neutral-50'
+                ? 'text-white bg-white/15'
+                : 'text-white hover:text-white hover:bg-white/10'
             }`}
           >
             About Us
@@ -124,10 +121,10 @@ export function HeaderClient({ categories = [] }: HeaderProps) {
               onKeyDown={(e) => { if (e.key === 'Escape') setDropdownOpen(false) }}
               aria-expanded={dropdownOpen}
               aria-haspopup="true"
-              className={`flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 ${
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-md text-sm font-medium tracking-wide transition-colors duration-150 ${
                 isProductActive
-                  ? 'text-blue-600 bg-blue-50'
-                  : 'text-neutral-700 hover:text-blue-600 hover:bg-neutral-50'
+                  ? 'text-white bg-white/15'
+                  : 'text-white hover:text-white hover:bg-white/10'
               }`}
             >
               Our Product
@@ -139,24 +136,25 @@ export function HeaderClient({ categories = [] }: HeaderProps) {
 
             {dropdownOpen && (
               <div
-                className="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl border border-neutral-200 shadow-xl py-1.5 z-50"
+                className="absolute top-full left-0 mt-2 w-56 bg-navy-900 rounded-xl border border-white/10 shadow-xl py-1.5 z-50"
+                style={{ background: 'var(--color-navy-900)' }}
                 role="menu"
               >
                 <Link
                   href="/products"
-                  className="flex items-center px-4 py-2.5 text-sm font-medium text-neutral-800 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                  className="flex items-center px-4 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition-colors"
                   role="menuitem"
                 >
                   All Products
                 </Link>
                 {categories.length > 0 && (
                   <>
-                    <div className="my-1 mx-3 border-t border-neutral-100" />
+                    <div className="my-1 mx-3 border-t border-white/10" />
                     {categories.map((cat) => (
                       <Link
                         key={cat.id}
-                        href={`/products?category=${cat.slug}`}
-                        className="flex items-center px-4 py-2.5 text-sm text-neutral-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                        href={`/products/category/${cat.slug}`}
+                        className="flex items-center px-4 py-2.5 text-sm text-slate-100 hover:bg-white/10 hover:text-white transition-colors"
                         role="menuitem"
                       >
                         {cat.name}
@@ -171,10 +169,10 @@ export function HeaderClient({ categories = [] }: HeaderProps) {
           {/* Gallery */}
           <Link
             href="/gallery"
-            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 ${
+            className={`px-3.5 py-2 rounded-md text-sm font-medium tracking-wide transition-colors duration-150 ${
               isActive('/gallery')
-                ? 'text-blue-600 bg-blue-50'
-                : 'text-neutral-700 hover:text-blue-600 hover:bg-neutral-50'
+                ? 'text-white bg-white/15'
+                : 'text-white hover:text-white hover:bg-white/10'
             }`}
           >
             Gallery
@@ -183,10 +181,10 @@ export function HeaderClient({ categories = [] }: HeaderProps) {
           {/* Certificate */}
           <Link
             href="/certificates"
-            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 ${
+            className={`px-3.5 py-2 rounded-md text-sm font-medium tracking-wide transition-colors duration-150 ${
               isActive('/certificates')
-                ? 'text-blue-600 bg-blue-50'
-                : 'text-neutral-700 hover:text-blue-600 hover:bg-neutral-50'
+                ? 'text-white bg-white/15'
+                : 'text-white hover:text-white hover:bg-white/10'
             }`}
           >
             Certificate
@@ -195,10 +193,10 @@ export function HeaderClient({ categories = [] }: HeaderProps) {
           {/* Contact */}
           <Link
             href="/contact"
-            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 ${
+            className={`px-3.5 py-2 rounded-md text-sm font-medium tracking-wide transition-colors duration-150 ${
               isActive('/contact')
-                ? 'text-blue-600 bg-blue-50'
-                : 'text-neutral-700 hover:text-blue-600 hover:bg-neutral-50'
+                ? 'text-white bg-white/15'
+                : 'text-white hover:text-white hover:bg-white/10'
             }`}
           >
             Contact Us
@@ -208,13 +206,12 @@ export function HeaderClient({ categories = [] }: HeaderProps) {
         {/* CTA + Mobile Toggle */}
         <div className="flex items-center gap-3">
           <a
-            href="tel:+917554000001"
-            className="hidden sm:flex items-center gap-2 text-sm font-medium transition-colors hover:text-blue-600"
-            style={{ color: 'var(--color-text-muted)' }}
+            href={phone ? `tel:${phone.replace(/\s+/g, '')}` : '/contact'}
+            className="hidden sm:flex items-center gap-2 text-sm font-medium tracking-wide text-white hover:text-white/80"
             aria-label="Call us"
           >
             <Phone size={14} />
-            <span className="hidden xl:block">+91 755 400 0001</span>
+            {phone && <span className="hidden xl:block">{phone}</span>}
           </a>
           <Link
             href="/contact"
@@ -225,7 +222,7 @@ export function HeaderClient({ categories = [] }: HeaderProps) {
 
           {/* Mobile hamburger */}
           <button
-            className="lg:hidden flex items-center justify-center w-9 h-9 rounded-md border border-neutral-200 transition-colors hover:bg-neutral-100"
+            className="lg:hidden flex items-center justify-center w-9 h-9 rounded-md border border-white/20 text-slate-200 transition-colors hover:bg-white/10"
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-expanded={mobileOpen}
             aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
@@ -238,16 +235,16 @@ export function HeaderClient({ categories = [] }: HeaderProps) {
       {/* Mobile Menu */}
       {mobileOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-white z-40 flex flex-col"
-          style={{ top: 'var(--header-height)' }}
+          className="lg:hidden fixed inset-0 bg-navy-950 text-white z-40 flex flex-col"
+          style={{ top: 'var(--header-height)', background: 'var(--color-navy-950)' }}
           role="dialog"
           aria-label="Mobile navigation"
         >
           <nav className="flex-1 overflow-y-auto px-4 py-6 flex flex-col gap-1">
-            <Link href="/" className={`flex items-center px-4 py-3 rounded-lg text-base font-medium ${pathname === '/' ? 'bg-blue-50 text-blue-600' : 'text-neutral-800 hover:bg-neutral-100'}`}>
+            <Link href="/" className={`flex items-center px-4 py-3 rounded-lg text-base font-medium ${pathname === '/' ? 'bg-white/10 text-amber-400' : 'text-slate-200 hover:bg-white/5'}`}>
               Home
             </Link>
-            <Link href="/about" className={`flex items-center px-4 py-3 rounded-lg text-base font-medium ${isActive('/about') ? 'bg-blue-50 text-blue-600' : 'text-neutral-800 hover:bg-neutral-100'}`}>
+            <Link href="/about" className={`flex items-center px-4 py-3 rounded-lg text-base font-medium ${isActive('/about') ? 'bg-white/10 text-amber-400' : 'text-slate-200 hover:bg-white/5'}`}>
               About Us
             </Link>
 
@@ -255,7 +252,7 @@ export function HeaderClient({ categories = [] }: HeaderProps) {
             <div>
               <button
                 onClick={() => setMobileProductsOpen(!mobileProductsOpen)}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-base font-medium ${isProductActive ? 'bg-blue-50 text-blue-600' : 'text-neutral-800 hover:bg-neutral-100'}`}
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-base font-medium ${isProductActive ? 'bg-white/10 text-amber-400' : 'text-slate-200 hover:bg-white/5'}`}
               >
                 Our Product
                 <ChevronDown
@@ -265,14 +262,14 @@ export function HeaderClient({ categories = [] }: HeaderProps) {
               </button>
               {mobileProductsOpen && (
                 <div className="ml-4 mt-1 flex flex-col gap-0.5">
-                  <Link href="/products" className="px-4 py-2.5 rounded-lg text-sm font-medium text-neutral-700 hover:bg-neutral-100">
+                  <Link href="/products" className="px-4 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-white/5">
                     All Products
                   </Link>
                   {categories.map((cat) => (
                     <Link
                       key={cat.id}
-                      href={`/products?category=${cat.slug}`}
-                      className="px-4 py-2.5 rounded-lg text-sm text-neutral-600 hover:bg-neutral-100"
+                      href={`/products/category/${cat.slug}`}
+                      className="px-4 py-2.5 rounded-lg text-sm text-slate-400 hover:bg-white/5"
                     >
                       {cat.name}
                     </Link>
@@ -281,22 +278,22 @@ export function HeaderClient({ categories = [] }: HeaderProps) {
               )}
             </div>
 
-            <Link href="/gallery" className={`flex items-center px-4 py-3 rounded-lg text-base font-medium ${isActive('/gallery') ? 'bg-blue-50 text-blue-600' : 'text-neutral-800 hover:bg-neutral-100'}`}>
+            <Link href="/gallery" className={`flex items-center px-4 py-3 rounded-lg text-base font-medium ${isActive('/gallery') ? 'bg-white/10 text-amber-400' : 'text-slate-200 hover:bg-white/5'}`}>
               Gallery
             </Link>
-            <Link href="/certificates" className={`flex items-center px-4 py-3 rounded-lg text-base font-medium ${isActive('/certificates') ? 'bg-blue-50 text-blue-600' : 'text-neutral-800 hover:bg-neutral-100'}`}>
+            <Link href="/certificates" className={`flex items-center px-4 py-3 rounded-lg text-base font-medium ${isActive('/certificates') ? 'bg-white/10 text-amber-400' : 'text-slate-200 hover:bg-white/5'}`}>
               Certificate
             </Link>
-            <Link href="/contact" className={`flex items-center px-4 py-3 rounded-lg text-base font-medium ${isActive('/contact') ? 'bg-blue-50 text-blue-600' : 'text-neutral-800 hover:bg-neutral-100'}`}>
+            <Link href="/contact" className={`flex items-center px-4 py-3 rounded-lg text-base font-medium ${isActive('/contact') ? 'bg-white/10 text-amber-400' : 'text-slate-200 hover:bg-white/5'}`}>
               Contact Us
             </Link>
 
-            <div className="mt-4 pt-4 border-t border-neutral-100 flex flex-col gap-3">
+            <div className="mt-4 pt-4 border-t border-white/10 flex flex-col gap-3">
               <Link href="/contact" className="btn btn-primary w-full text-center">
                 Enquire Now
               </Link>
-              <a href="tel:+917554000001" className="btn btn-ghost w-full text-center flex items-center justify-center gap-2">
-                <Phone size={14} /> Call +91 755 400 0001
+              <a href={phone ? `tel:${phone.replace(/\s+/g, '')}` : '/contact'} className="btn btn-ghost w-full text-center flex items-center justify-center gap-2 text-slate-200 border border-white/20">
+                <Phone size={14} /> {phone ? `Call ${phone}` : 'Call Us'}
               </a>
             </div>
           </nav>

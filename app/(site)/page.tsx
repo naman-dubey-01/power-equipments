@@ -9,7 +9,9 @@ import { CertificationsPreview } from '@/components/home/CertificationsPreview'
 import { GalleryPreview } from '@/components/home/GalleryPreview'
 import { ContactCTA } from '@/components/home/ContactCTA'
 import { createClient } from '@/lib/supabase/server'
+import { getFolderSlides, type FolderSlide } from '@/lib/slideshow'
 import type { Metadata } from 'next'
+import type { Database } from '@/types/database'
 
 export const metadata: Metadata = {
   title: 'Power Equipments — Electrical & Industrial Solutions | Bhopal, Indore',
@@ -24,17 +26,19 @@ export const metadata: Metadata = {
 
 export default async function HomePage() {
   // Fetch data concurrently from Supabase with safe fallback defaults
-  let categories: any[] = []
-  let featuredProducts: any[] = []
-  let certificates: any[] = []
-  let galleryItems: any[] = []
-  let company: any = null
-  let brands: any[] = []
+  type T = Database['public']['Tables']
+  let categories: T['categories']['Row'][] = []
+  let featuredProducts: (T['products']['Row'] & { product_images: T['product_images']['Row'][] })[] = []
+  let certificates: T['certificates']['Row'][] = []
+  let galleryItems: T['gallery_items']['Row'][] = []
+  let company: { primary_phone: string | null; email: string | null } | null = null
+  let brands: T['brands']['Row'][] = []
+  let slides: T['slides']['Row'][] = []
 
   try {
     const supabase = await createClient()
 
-    const [catsResult, productsResult, certsResult, galleryResult, companyResult, brandsResult] = await Promise.all([
+    const [catsResult, productsResult, certsResult, galleryResult, companyResult, brandsResult, slidesResult] = await Promise.all([
       supabase
         .from('categories')
         .select('*')
@@ -43,7 +47,7 @@ export default async function HomePage() {
         .limit(9),
       supabase
         .from('products')
-        .select('id, name, slug, short_description, brand, category_id')
+        .select('id, name, slug, short_description, brand, category_id, product_images(id, storage_path, alt_text, is_primary)')
         .eq('featured', true)
         .eq('is_active', true)
         .order('sort_order')
@@ -71,20 +75,43 @@ export default async function HomePage() {
         .eq('is_active', true)
         .order('sort_order')
         .limit(6),
+      supabase
+        .from('slides')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order')
+        .limit(6),
     ])
 
-    categories = catsResult.data ?? []
-    featuredProducts = productsResult.data ?? []
-    certificates = certsResult.data ?? []
-    galleryItems = galleryResult.data ?? []
-    company = companyResult.data ?? null
-    brands = brandsResult.data ?? []
+    categories = (catsResult.data as unknown as T['categories']['Row'][]) ?? []
+    featuredProducts = (productsResult.data as unknown as (T['products']['Row'] & { product_images: T['product_images']['Row'][] })[]) ?? []
+    certificates = (certsResult.data as unknown as T['certificates']['Row'][]) ?? []
+    galleryItems = (galleryResult.data as unknown as T['gallery_items']['Row'][]) ?? []
+    company = (companyResult.data as unknown as { primary_phone: string | null; email: string | null } | null) ?? null
+    brands = (brandsResult.data as unknown as T['brands']['Row'][]) ?? []
+    slides = (slidesResult.data as unknown as T['slides']['Row'][]) ?? []
   } catch {}
+
+  // Slideshow images come from the `public/slides/` folder by default; if the
+  // folder is empty we fall back to database-configured slides.
+  const folderSlides: FolderSlide[] = getFolderSlides()
+  const heroSlides = folderSlides.length > 0
+    ? folderSlides
+    : slides
+        .filter((s) => s.image_url)
+        .map((s) => ({
+          src: s.image_url,
+          alt: s.title,
+          title: s.title,
+          subtitle: s.subtitle,
+          cta_text: s.cta_text,
+          cta_link: s.cta_link,
+        }))
 
   return (
     <>
       {/* 1. Full-width homepage image slideshow */}
-      <HeroSlideshow />
+      <HeroSlideshow slides={heroSlides} />
 
       {/* 2. Company / value proposition section */}
       <CompanyIntro />
@@ -112,8 +139,8 @@ export default async function HomePage() {
 
       {/* 10. Contact / enquiry CTA */}
       <ContactCTA
-        phone={company?.primary_phone}
-        email={company?.email}
+        phone={company?.primary_phone ?? undefined}
+        email={company?.email ?? undefined}
       />
     </>
   )

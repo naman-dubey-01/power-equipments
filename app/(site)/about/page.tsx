@@ -1,6 +1,8 @@
 import { generatePageMetadata } from '@/lib/seo/metadata'
-import { CheckCircle, MapPin, Phone, Mail, Clock, Users, Award } from 'lucide-react'
+import { CheckCircle, MapPin, Phone, Mail, Clock } from 'lucide-react'
 import Link from 'next/link'
+import { createClient } from '@/lib/supabase/server'
+import type { Database } from '@/types/database'
 
 export const metadata = generatePageMetadata({
   title: 'About Us',
@@ -30,7 +32,24 @@ const capabilities = [
   'After-Sales Technical Support',
 ]
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  let company: Database['public']['Tables']['company_settings']['Row'] | null = null
+  let offices: Database['public']['Tables']['offices']['Row'][] = []
+
+  try {
+    const supabase = await createClient()
+    const [companyRes, officesRes] = await Promise.all([
+      supabase.from('company_settings').select('company_name, tagline, about_long, office_hours').limit(1).maybeSingle(),
+      supabase.from('offices').select('*').eq('is_active', true).order('sort_order'),
+    ])
+    company = (companyRes.data as unknown as Database['public']['Tables']['company_settings']['Row'] | null) ?? null
+    offices = (officesRes.data as unknown as Database['public']['Tables']['offices']['Row'][]) ?? []
+  } catch {}
+
+  const storyCopy = company?.about_long || (
+    'Power Equipments was established in Bhopal with a clear purpose: to be the reliable, technically knowledgeable electrical products supplier that Central India\'s industrial businesses needed. We focus on the products that matter most to our customers — drives, motors, lighting, cables and switchgear — and we invest in understanding them deeply. Our team doesn\'t just supply products; we understand applications and help customers make the right choice. Today we operate from multiple offices — Bhopal (head office) and Indore — serving manufacturers, contractors, OEMs and facility managers across Madhya Pradesh and beyond.'
+  )
+
   return (
     <div style={{ paddingTop: 'var(--header-height)' }}>
       {/* Page Hero */}
@@ -71,29 +90,16 @@ export default function AboutPage() {
                 Electrical Expertise, Built Over Years
               </h2>
               <div className="prose-content">
-                <p>
-                  Power Equipments was established in Bhopal with a clear purpose: to be
-                  the reliable, technically knowledgeable electrical products supplier that
-                  Central India's industrial businesses needed.
-                </p>
-                <p>
-                  We focus on the products that matter most to our customers — drives,
-                  motors, lighting, cables and switchgear — and we invest in understanding
-                  them deeply. Our team doesn't just supply products; we understand
-                  applications and help customers make the right choice.
-                </p>
-                <p>
-                  Today we operate from two offices — Bhopal (head office) and Indore —
-                  serving manufacturers, contractors, OEMs and facility managers across
-                  Madhya Pradesh and beyond.
-                </p>
+                {storyCopy.split(/\n\s*\n/).map((paragraph: string, i: number) => (
+                  <p key={i}>{paragraph}</p>
+                ))}
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               {[
                 { value: '15+', label: 'Years in Business' },
-                { value: '2', label: 'Office Locations' },
+                { value: String(offices.length || 0), label: 'Office Locations' },
                 { value: '500+', label: 'Products in Portfolio' },
                 { value: 'MP', label: 'Madhya Pradesh Focus' },
               ].map(({ value, label }) => (
@@ -197,52 +203,46 @@ export default function AboutPage() {
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-            {[
-              {
-                name: 'Head Office — Bhopal',
-                address: 'Bhopal, Madhya Pradesh, India',
-                phone: '+91 755 400 0001',
-                email: 'bhopal@powerequipments.in',
-                hours: 'Mon–Sat: 9:30 AM – 6:30 PM',
-                isHQ: true,
-              },
-              {
-                name: 'Branch Office — Indore',
-                address: 'Indore, Madhya Pradesh, India',
-                phone: '+91 731 400 0002',
-                email: 'indore@powerequipments.in',
-                hours: 'Mon–Sat: 9:30 AM – 6:30 PM',
-                isHQ: false,
-              },
-            ].map(({ name, address, phone, email, hours, isHQ }) => (
-              <div key={name} className="card-base p-6">
+          {offices.length === 0 ? (
+            <p className="text-center text-sm" style={{ color: 'var(--color-text-muted)' }}>
+              Office locations to be announced soon.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+              {offices.map((office) => (
+              <div key={office.id} className="card-base p-6">
                 <div className="flex items-center gap-2 mb-4">
                   <MapPin size={16} style={{ color: 'var(--color-brand)' }} />
-                  <h3 className="font-semibold" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-navy-900)' }}>{name}</h3>
-                  {isHQ && <span className="badge badge-blue ml-auto">HQ</span>}
+                  <h3 className="font-semibold" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-navy-900)' }}>{office.name}</h3>
                 </div>
                 <ul className="flex flex-col gap-2.5">
                   <li className="flex items-start gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                    <MapPin size={13} className="mt-0.5 shrink-0" /> {address}
+                    <MapPin size={13} className="mt-0.5 shrink-0" /> {office.address}{office.city ? `, ${office.city}` : ''}{office.state ? `, ${office.state}` : ''}{office.postal_code ? ` — ${office.postal_code}` : ''}
                   </li>
+                  {office.phone && (
                   <li>
-                    <a href={`tel:${phone}`} className="flex items-center gap-2 text-sm hover:text-blue-600 transition-colors" style={{ color: 'var(--color-text-muted)' }}>
-                      <Phone size={13} /> {phone}
+                    <a href={`tel:${office.phone.replace(/\s/g, '')}`} className="flex items-center gap-2 text-sm hover:text-blue-600 transition-colors" style={{ color: 'var(--color-text-muted)' }}>
+                      <Phone size={13} /> {office.phone}
                     </a>
                   </li>
+                  )}
+                  {office.email && (
                   <li>
-                    <a href={`mailto:${email}`} className="flex items-center gap-2 text-sm hover:text-blue-600 transition-colors" style={{ color: 'var(--color-text-muted)' }}>
-                      <Mail size={13} /> {email}
+                    <a href={`mailto:${office.email}`} className="flex items-center gap-2 text-sm hover:text-blue-600 transition-colors" style={{ color: 'var(--color-text-muted)' }}>
+                      <Mail size={13} /> {office.email}
                     </a>
                   </li>
+                  )}
+                  {company?.office_hours && (
                   <li className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                    <Clock size={13} /> {hours}
+                    <Clock size={13} /> {company.office_hours}
                   </li>
+                  )}
                 </ul>
               </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+/* Register custom navy palette as Tailwind utilities (bg-navy-950, text-navy-900, etc.) */
+@theme {
+  --color-navy-950: #04101f;
+  --color-navy-900: #071728;
+  --color-navy-800: #0a1e35;
+  --color-navy-700: #0d2849;
+  --color-navy-600: #12325c;
+  --color-navy-500: #1a4580;
+}
+
 /* =============================================
    POWER EQUIPMENTS — GLOBAL DESIGN SYSTEM
    Brand: Industrial B2B · Electrical · Reliable

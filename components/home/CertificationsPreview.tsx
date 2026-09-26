@@ -8,14 +8,10 @@ interface CertificationsPreviewProps {
   certificates?: Certificate[]
 }
 
-const fallbackCerts = [
-  { id: 'f1', title: 'ISO 9001:2015 Quality Management', issuer: 'Bureau Veritas', description: 'Certified quality management system for electrical products supply.' },
-  { id: 'f2', title: 'Authorized Channel Partner', issuer: 'ABB India', description: 'Authorized distribution partner for ABB drives and automation products.' },
-  { id: 'f3', title: 'Trade License', issuer: 'Municipal Corporation Bhopal', description: 'Valid trade registration for electrical equipment supply business.' },
-]
-
 export function CertificationsPreview({ certificates }: CertificationsPreviewProps) {
-  const items = (certificates && certificates.length > 0 ? certificates : fallbackCerts)
+  const items = (certificates && certificates.length > 0 ? certificates : [])
+
+  if (items.length === 0) return null
 
   return (
     <section className="section-padding" style={{ background: 'var(--color-surface)' }}>

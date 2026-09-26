@@ -11,7 +11,7 @@ export function Industries() {
   return (
     <section
       className="section-padding grid-pattern"
-      style={{ background: 'var(--color-neutral-50)' }}
+      style={{ background: 'var(--color-bg-secondary)' }}
     >
       <div className="container-site">
         <div className="text-center mb-12 max-w-2xl mx-auto">

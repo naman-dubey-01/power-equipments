@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { generatePageMetadata } from '@/lib/seo/metadata'
-import { Award, FileText, Calendar, ShieldCheck, CheckCircle2 } from 'lucide-react'
+import { Award, FileText, Calendar, ShieldCheck } from 'lucide-react'
+import { resolveImageUrl } from '@/lib/utils'
+import type { Database } from '@/types/database'
 
 export const metadata = generatePageMetadata({
   title: 'Certificates & Accreditation',
@@ -8,38 +10,8 @@ export const metadata = generatePageMetadata({
   path: '/certificates',
 })
 
-const defaultCertificates = [
-  {
-    id: 'cert-1',
-    title: 'ISO 9001:2015 Quality Management Certificate',
-    issuer: 'International Organization for Standardization',
-    description: 'Certified for quality control and technical compliance in electrical distribution and industrial equipment supply.',
-    valid_from: '2023',
-    valid_until: '2028',
-    document_path: 'https://powerequipments.in/docs/iso-certificate.pdf',
-  },
-  {
-    id: 'cert-2',
-    title: 'ABB Authorized Channel Partner & Distributor Certificate',
-    issuer: 'ABB India Limited',
-    description: 'Authorized distributor and service partner for ABB Variable Frequency Drives (VFDs) and Low Voltage Switchgear.',
-    valid_from: '2020',
-    valid_until: '2026',
-    document_path: 'https://powerequipments.in/docs/abb-authorization.pdf',
-  },
-  {
-    id: 'cert-3',
-    title: 'CPRI Type-Test Compliance Certification',
-    issuer: 'Central Power Research Institute (CPRI)',
-    description: 'Verified type-test compliance for Motor Control Centres (MCC) and Power Control Panels.',
-    valid_from: '2022',
-    valid_until: '2027',
-    document_path: 'https://powerequipments.in/docs/cpri-certification.pdf',
-  },
-]
-
 export default async function CertificatesPage() {
-  let certificates: any[] = []
+  let certificates: Database['public']['Tables']['certificates']['Row'][] = []
 
   try {
     const supabase = await createClient()
@@ -50,11 +22,11 @@ export default async function CertificatesPage() {
       .order('sort_order')
 
     if (data && data.length > 0) {
-      certificates = data
+      certificates = data as Database['public']['Tables']['certificates']['Row'][]
     }
   } catch {}
 
-  const displayCertificates = certificates.length > 0 ? certificates : defaultCertificates
+  const displayCertificates = certificates
 
   return (
     <div style={{ paddingTop: 'var(--header-height)' }}>
@@ -84,8 +56,19 @@ export default async function CertificatesPage() {
 
       <section className="py-16 bg-white">
         <div className="container-site">
+          {displayCertificates.length === 0 ? (
+            <div className="text-center py-24">
+              <Award size={48} strokeWidth={1} className="mx-auto mb-4" style={{ color: 'var(--color-text-subtle)' }} />
+              <h3 className="font-semibold mb-2" style={{ color: 'var(--color-navy-900)' }}>No certificates listed yet</h3>
+              <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                Certification documents will be added here as they are verified.
+              </p>
+            </div>
+          ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {displayCertificates.map((cert) => (
+            {displayCertificates.map((cert) => {
+              const documentUrl = resolveImageUrl(cert.document_path, 'certificate-files')
+              return (
               <div key={cert.id} className="card-base p-6 flex flex-col justify-between hover:shadow-lg transition-shadow">
                 <div>
                   <div className="flex items-start gap-4 mb-4">
@@ -123,22 +106,26 @@ export default async function CertificatesPage() {
                     </div>
                   )}
 
-                  <a
-                    href={
-                      cert.document_path && cert.document_path.startsWith('http')
-                        ? cert.document_path
-                        : '#contact'
-                    }
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white transition-colors shadow-sm"
-                  >
-                    <FileText size={16} /> View Official Document
-                  </a>
+                  {documentUrl ? (
+                    <a
+                      href={documentUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white transition-colors shadow-sm"
+                    >
+                      <FileText size={16} /> View Official Document
+                    </a>
+                  ) : (
+                    <div className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-500">
+                      <ShieldCheck size={16} /> Document available on request
+                    </div>
+                  )}
                 </div>
               </div>
-            ))}
+              )
+            })}
           </div>
+          )}
         </div>
       </section>
     </div>

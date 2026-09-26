@@ -2,6 +2,9 @@ import { createClient } from '@/lib/supabase/server'
 import { generatePageMetadata } from '@/lib/seo/metadata'
 import Image from 'next/image'
 import { Image as ImageIcon, Sparkles } from 'lucide-react'
+import { resolveImageUrl } from '@/lib/utils'
+import Link from 'next/link'
+import type { Database } from '@/types/database'
 
 export const metadata = generatePageMetadata({
   title: 'Gallery — Project Installations & Facilities',
@@ -9,53 +12,8 @@ export const metadata = generatePageMetadata({
   path: '/gallery',
 })
 
-const defaultGallery = [
-  {
-    id: 'g-1',
-    title: 'Industrial VFD & Panel Assembly',
-    category: 'Automation',
-    description: 'Custom ABB drive panel installation for manufacturing plant in Pithampur Industrial Area.',
-    image_url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 'g-2',
-    title: 'Warehouse Highbay LED Installation',
-    category: 'Commercial Lighting',
-    description: 'Philips 150W LED highbay lighting retrofit for logistics facility in Mandideep.',
-    image_url: 'https://images.unsplash.com/photo-1513828583688-c52646db42da?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 'g-3',
-    title: 'Motor Control Center (MCC) Panel',
-    category: 'Switchgear & MCC',
-    description: 'High capacity Siemens motor control panel commissioning for water utility project.',
-    image_url: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 'g-4',
-    title: 'Heavy Copper Cable Laying & Wiring',
-    category: 'Power Cables',
-    description: 'Polycab 4-core armoured cable installation for commercial building in Bhopal.',
-    image_url: 'https://images.unsplash.com/photo-1544724569-5f546fd6f2b5?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 'g-5',
-    title: 'Power Equipments Distribution Warehouse',
-    category: 'Warehouse & Inventory',
-    description: 'Central stock repository in MP Nagar Bhopal carrying 500+ ready electrical units.',
-    image_url: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 'g-6',
-    title: 'Substation Control Panel Testing',
-    category: 'Testing & Quality',
-    description: 'Routine insulation and load testing of switchgear units prior to dispatch.',
-    image_url: 'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&w=800&q=80',
-  },
-]
-
 export default async function GalleryPage() {
-  let items: any[] = []
+  let items: Database['public']['Tables']['gallery_items']['Row'][] = []
 
   try {
     const supabase = await createClient()
@@ -66,11 +24,11 @@ export default async function GalleryPage() {
       .order('sort_order')
 
     if (data && data.length > 0) {
-      items = data
+      items = data as Database['public']['Tables']['gallery_items']['Row'][]
     }
   } catch {}
 
-  const displayItems = items.length > 0 ? items : defaultGallery
+  const displayItems = items
 
   return (
     <div style={{ paddingTop: 'var(--header-height)' }}>
@@ -100,26 +58,38 @@ export default async function GalleryPage() {
 
       <section className="py-16 bg-white">
         <div className="container-site">
+          {displayItems.length === 0 ? (
+            <div
+              className="rounded-2xl flex flex-col items-center justify-center py-24 gap-4"
+              style={{ background: 'var(--color-neutral-50)', border: '2px dashed var(--color-border)' }}
+            >
+              <ImageIcon size={48} strokeWidth={1} style={{ color: 'var(--color-text-subtle)' }} />
+              <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                Gallery images are being uploaded. Please check back soon.
+              </p>
+              <Link href="/contact" className="btn btn-ghost btn-sm">Contact Us</Link>
+            </div>
+          ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {displayItems.map((item) => {
-              const imageSrc =
-                item.image_url ||
-                (item.storage_path
-                  ? item.storage_path.startsWith('http')
-                    ? item.storage_path
-                    : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${item.storage_path}`
-                  : 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80')
+              const imageSrc = resolveImageUrl(item.storage_path, 'gallery-images')
 
               return (
                 <div key={item.id} className="card-base overflow-hidden flex flex-col group hover:shadow-lg transition-all">
                   <div className="aspect-[4/3] bg-slate-900 relative overflow-hidden">
-                    <Image
-                      src={imageSrc}
-                      alt={item.alt_text || item.title || 'Gallery image'}
-                      fill
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                      className="object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
+                    {imageSrc ? (
+                      <Image
+                        src={imageSrc}
+                        alt={item.alt_text || item.title || 'Gallery image'}
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <ImageIcon size={40} strokeWidth={1} className="text-slate-600" />
+                      </div>
+                    )}
                   </div>
                   <div className="p-5 flex flex-col flex-1">
                     {item.category && (
@@ -140,6 +110,7 @@ export default async function GalleryPage() {
               )
             })}
           </div>
+          )}
         </div>
       </section>
     </div>

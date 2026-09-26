@@ -32,6 +32,19 @@ export function getSupabaseImageUrl(
   return `${supabaseUrl}/storage/v1/object/public/${bucket}/${path}`
 }
 
+/**
+ * Resolves a stored image value into a displayable URL.
+ * Accepts full URLs, or paths relative to a Supabase storage bucket.
+ */
+export function resolveImageUrl(
+  value: string | null | undefined,
+  bucket = 'site-assets'
+): string | null {
+  if (!value) return null
+  if (/^https?:\/\//.test(value)) return value
+  return getSupabaseImageUrl(bucket, value)
+}
+
 export function truncate(str: string, maxLength: number): string {
   if (str.length <= maxLength) return str
   return str.slice(0, maxLength).trim() + '…'

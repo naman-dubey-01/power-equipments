@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Zap, ArrowLeft, Home, Package } from 'lucide-react'
+import { Zap, Home, Package } from 'lucide-react'
 
 export default function NotFound() {
   return (

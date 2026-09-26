@@ -12,7 +12,6 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [devModeActive, setDevModeActive] = useState(false)
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -27,32 +26,13 @@ export default function AdminLoginPage() {
       })
 
       if (authError) {
-        // If Supabase is unconfigured or returns invalid credentials
-        if (
-          authError.message.includes('FetchError') ||
-          authError.message.includes('placeholder') ||
-          authError.message.includes('Invalid API key')
-        ) {
-          setDevModeActive(true)
-          // Allow dev preview access to admin portal when credentials are in fallback mode
-          setTimeout(() => {
-            router.push('/admin')
-            router.refresh()
-          }, 1200)
-          return
-        }
         setError(authError.message)
       } else {
         router.push('/admin')
         router.refresh()
       }
     } catch {
-      // Development fallback
-      setDevModeActive(true)
-      setTimeout(() => {
-        router.push('/admin')
-        router.refresh()
-      }, 1000)
+      setError('Unable to reach authentication service. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -89,12 +69,6 @@ export default function AdminLoginPage() {
               Power Equipments Content &amp; Inventory Management
             </p>
           </div>
-
-          {devModeActive && (
-            <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs leading-relaxed">
-              <strong>Dev Mode Access:</strong> Supabase credentials not fully configured in <code>.env.local</code>. Logging in under local preview mode...
-            </div>
-          )}
 
           {error && (
             <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs flex items-start gap-2.5">

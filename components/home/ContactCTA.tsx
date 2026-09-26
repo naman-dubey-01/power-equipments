@@ -28,7 +28,7 @@ export function ContactCTA({ phone = '+91 755 400 0001', email = 'contact@powere
             Need the Right Electrical Product?
           </h2>
           <p className="text-lg mb-10 leading-relaxed" style={{ color: 'var(--color-neutral-300)' }}>
-            Talk to Power Equipments. We'll help you select the right product,
+            Talk to Power Equipments. We&apos;ll help you select the right product,
             provide a technical quotation, and ensure reliable supply.
           </p>
 

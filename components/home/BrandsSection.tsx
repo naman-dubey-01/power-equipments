@@ -1,21 +1,15 @@
 import { createClient } from '@/lib/supabase/server'
-import { ShieldCheck, Award } from 'lucide-react'
+import { ShieldCheck } from 'lucide-react'
+import type { Database } from '@/types/database'
 
-const fallbackBrands = [
-  { id: 'b1', name: 'ABB', tag: 'Drives & Automation' },
-  { id: 'b2', name: 'Siemens', tag: 'Motors & Controls' },
-  { id: 'b3', name: 'Philips', tag: 'Commercial Lighting' },
-  { id: 'b4', name: 'Polycab', tag: 'Wires & Cables' },
-  { id: 'b5', name: 'L&T Switchgear', tag: 'Power Distribution' },
-  { id: 'b6', name: 'Schneider Electric', tag: 'Protection & Relays' },
-]
+type BrandRow = Database['public']['Tables']['brands']['Row']
 
 interface BrandsSectionProps {
-  brands?: any[]
+  brands?: BrandRow[]
 }
 
 export async function BrandsSection({ brands = [] }: BrandsSectionProps) {
-  let activeBrands: any[] = brands
+  let activeBrands: BrandRow[] = brands
 
   if (!activeBrands || activeBrands.length === 0) {
     try {
@@ -26,12 +20,12 @@ export async function BrandsSection({ brands = [] }: BrandsSectionProps) {
         .eq('is_active', true)
         .order('sort_order')
       if (data && data.length > 0) {
-        activeBrands = data
+        activeBrands = data as unknown as BrandRow[]
       }
     } catch {}
   }
 
-  const displayBrands = activeBrands.length > 0 ? activeBrands : fallbackBrands
+  if (activeBrands.length === 0) return null
 
   return (
     <section className="py-16 bg-white border-y border-neutral-100">
@@ -50,7 +44,7 @@ export async function BrandsSection({ brands = [] }: BrandsSectionProps) {
 
         {/* Brand Cards Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-          {displayBrands.map((b) => (
+          {activeBrands.map((b) => (
             <div
               key={b.id || b.name}
               className="card-base p-6 flex flex-col items-center justify-center text-center hover:border-blue-300 hover:shadow-md transition-all group bg-gradient-to-b from-neutral-50/50 to-white"
@@ -62,7 +56,7 @@ export async function BrandsSection({ brands = [] }: BrandsSectionProps) {
                 {b.name}
               </span>
               <span className="text-[11px] text-neutral-500 mt-0.5">
-                {b.tag || 'Industrial Partner'}
+                Industrial Partner
               </span>
             </div>
           ))}

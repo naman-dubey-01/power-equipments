@@ -1,21 +1,41 @@
 'use client'
 
 import { useState } from 'react'
+import { submitContact } from '@/lib/actions/contact'
 
-export function ContactForm() {
+interface ContactFormProps {
+  initialSubject?: string
+}
+
+export function ContactForm({ initialSubject = '' }: ContactFormProps) {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [errorMessage, setErrorMessage] = useState('')
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setStatus('loading')
-    
-    // Fallback form handling, normally we'd hit a server action or API route.
-    // Given the task, we just simulate a successful submission.
-    setTimeout(() => {
+    setErrorMessage('')
+
+    const form = e.target as HTMLFormElement
+    const formData = new FormData(form)
+
+    const result = await submitContact({
+      name: String(formData.get('name') ?? ''),
+      email: String(formData.get('email') ?? ''),
+      phone: String(formData.get('phone') ?? ''),
+      company: String(formData.get('company') ?? ''),
+      subject: String(formData.get('subject') ?? ''),
+      message: String(formData.get('message') ?? ''),
+      honeypot: String(formData.get('company_website') ?? ''),
+    })
+
+    if (result.success) {
       setStatus('success')
-      ;(e.target as HTMLFormElement).reset()
-    }, 1000)
+      form.reset()
+    } else {
+      setStatus('error')
+      setErrorMessage(result.error || 'Something went wrong. Please try again.')
+    }
   }
 
   if (status === 'success') {
@@ -38,12 +58,24 @@ export function ContactForm() {
   return (
     <form onSubmit={handleSubmit} className="card-base p-6 md:p-8">
       <h3 className="text-2xl font-bold mb-6" style={{ color: 'var(--color-navy-900)' }}>Send us a Message</h3>
-      
+
       {status === 'error' && (
         <div className="mb-6 p-4 rounded-md bg-red-50 text-red-600 text-sm">
-          {errorMessage || 'Something went wrong. Please try again.'}
+          {errorMessage}
         </div>
       )}
+
+      {/* Honeypot field — bots fill this, humans don't see it */}
+      <div className="hidden" aria-hidden="true">
+        <label htmlFor="company_website">Company Website</label>
+        <input
+          type="text"
+          id="company_website"
+          name="company_website"
+          tabIndex={-1}
+          autoComplete="off"
+        />
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
         <div>
@@ -99,6 +131,22 @@ export function ContactForm() {
             placeholder="Your Company Pvt Ltd"
           />
         </div>
+      </div>
+
+      <div className="mb-6">
+        <label htmlFor="subject" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--color-navy-900)' }}>
+          Subject <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          id="subject"
+          name="subject"
+          required
+          maxLength={200}
+          defaultValue={initialSubject}
+          className="w-full px-4 py-2.5 rounded-md border border-neutral-300 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+          placeholder="General Enquiry / Quotation Request"
+        />
       </div>
 
       <div className="mb-6">

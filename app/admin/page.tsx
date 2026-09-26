@@ -1,16 +1,16 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+import type { Database } from '@/types/database'
 import {
   Package,
   FolderTree,
   MessageSquare,
-  Award,
   ArrowRight,
   PlusCircle,
   Clock,
   TrendingUp,
-  CheckCircle,
-  ExternalLink
+  Images,
+  Inbox
 } from 'lucide-react'
 
 export const metadata = {
@@ -18,21 +18,23 @@ export const metadata = {
 }
 
 export default async function AdminDashboardPage() {
-  let stats = {
+  const stats = {
     productsCount: 0,
     categoriesCount: 0,
     certificatesCount: 0,
     enquiriesCount: 0,
+    slidesCount: 0,
   }
-  let recentEnquiries: any[] = []
+  const recentEnquiries: Database['public']['Tables']['contact_submissions']['Row'][] = []
 
   try {
     const supabase = await createClient()
 
-    const [productsRes, categoriesRes, certsRes, enquiriesRes] = await Promise.all([
+    const [productsRes, categoriesRes, certsRes, slidesRes, enquiriesRes] = await Promise.all([
       supabase.from('products').select('id', { count: 'exact', head: true }),
       supabase.from('categories').select('id', { count: 'exact', head: true }),
       supabase.from('certificates').select('id', { count: 'exact', head: true }),
+      supabase.from('slides').select('id', { count: 'exact', head: true }),
       supabase.from('contact_submissions').select('*').order('created_at', { ascending: false }).limit(5),
     ])
 
@@ -40,42 +42,9 @@ export default async function AdminDashboardPage() {
     stats.categoriesCount = categoriesRes.count ?? 0
     stats.certificatesCount = certsRes.count ?? 0
     stats.enquiriesCount = enquiriesRes.data?.length ?? 0
-    recentEnquiries = enquiriesRes.data ?? []
+    stats.slidesCount = slidesRes.count ?? 0
+    recentEnquiries.push(...(enquiriesRes.data ?? []))
   } catch {}
-
-  // Fallback metrics if Supabase database is not populated yet
-  if (stats.productsCount === 0) stats.productsCount = 12
-  if (stats.categoriesCount === 0) stats.categoriesCount = 6
-  if (stats.certificatesCount === 0) stats.certificatesCount = 4
-
-  const mockEnquiries = [
-    {
-      id: 'e1',
-      name: 'Ramesh Sharma',
-      email: 'ramesh@indoreindustries.com',
-      company: 'Indore Engineering Works',
-      subject: 'Quotation for ABB ACS880 VFD 45kW',
-      created_at: new Date(Date.now() - 3600000 * 4).toISOString(),
-    },
-    {
-      id: 'e2',
-      name: 'Anil Kumar',
-      email: 'anil@bhopalpower.in',
-      company: 'Bhopal Switchgear & Controls',
-      subject: 'Bulk enquiry for Polycab FR Copper Wires',
-      created_at: new Date(Date.now() - 3600000 * 22).toISOString(),
-    },
-    {
-      id: 'e3',
-      name: 'Suresh Patel',
-      email: 'spatel@mandideepmfg.co.in',
-      company: 'Mandideep Auto Components',
-      subject: 'Siemens SIMOTICS Motor 15HP requirement',
-      created_at: new Date(Date.now() - 3600000 * 48).toISOString(),
-    },
-  ]
-
-  const displayEnquiries = recentEnquiries.length > 0 ? recentEnquiries : mockEnquiries
 
   return (
     <div className="space-y-8">
@@ -138,7 +107,7 @@ export default async function AdminDashboardPage() {
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
           <div>
             <span className="block text-xs font-medium text-slate-500 mb-1">Recent Enquiries</span>
-            <span className="text-3xl font-bold text-slate-900">{displayEnquiries.length}</span>
+            <span className="text-3xl font-bold text-slate-900">{stats.enquiriesCount}</span>
             <span className="block text-[11px] text-amber-600 font-medium mt-1">Customer Leads</span>
           </div>
           <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
@@ -148,12 +117,12 @@ export default async function AdminDashboardPage() {
 
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
           <div>
-            <span className="block text-xs font-medium text-slate-500 mb-1">Certifications</span>
-            <span className="text-3xl font-bold text-slate-900">{stats.certificatesCount}</span>
-            <span className="block text-[11px] text-emerald-600 font-medium mt-1">Verified Badges</span>
+            <span className="block text-xs font-medium text-slate-500 mb-1">Homepage Slides</span>
+            <span className="text-3xl font-bold text-slate-900">{stats.slidesCount}</span>
+            <span className="block text-[11px] text-slate-500 mt-1">Hero Banners</span>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-            <Award size={24} />
+          <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+            <Images size={24} />
           </div>
         </div>
       </div>
@@ -185,7 +154,7 @@ export default async function AdminDashboardPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {displayEnquiries.map((e) => (
+              {recentEnquiries.map((e) => (
                 <tr key={e.id} className="hover:bg-slate-50/80 transition-colors">
                   <td className="px-6 py-4 font-semibold text-slate-900">
                     <div>{e.name}</div>
@@ -209,6 +178,12 @@ export default async function AdminDashboardPage() {
             </tbody>
           </table>
         </div>
+        {recentEnquiries.length === 0 && (
+          <div className="p-10 text-center text-slate-400 text-sm flex flex-col items-center gap-2 border-t border-slate-100">
+            <Inbox size={28} strokeWidth={1} className="text-slate-300" />
+            No enquiries yet — submissions from the public contact form will appear here.
+          </div>
+        )}
       </div>
     </div>
   )

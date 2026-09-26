@@ -17,6 +17,10 @@ export const productSchema = z.object({
   category_id: z.string().uuid().nullable().optional(),
   brand: z.string().max(100).nullable().optional(),
   sku: z.string().max(100).nullable().optional(),
+  specifications: z
+    .array(z.object({ label: z.string().max(200), value: z.string().max(500) }))
+    .max(50)
+    .default([]),
   short_description: z.string().max(500).nullable().optional(),
   description: z.string().nullable().optional(),
   featured: z.boolean().default(false),

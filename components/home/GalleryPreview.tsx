@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { ArrowRight, Image } from 'lucide-react'
+import { ArrowRight, Image as ImageIcon } from 'lucide-react'
+import { resolveImageUrl } from '@/lib/utils'
 
 export function GalleryPreview({ images }: { images?: { id: string; storage_path: string; alt_text?: string | null; title?: string | null }[] }) {
   const items = images && images.length > 0 ? images.slice(0, 6) : []
@@ -24,28 +25,35 @@ export function GalleryPreview({ images }: { images?: { id: string; storage_path
 
         {items.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {items.map((item, i) => (
-              <div
-                key={item.id}
-                className={`relative overflow-hidden rounded-xl ${i === 0 ? 'row-span-2' : ''}`}
-                style={{ background: 'var(--color-neutral-200)', aspectRatio: i === 0 ? 'auto' : '4/3' }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={item.storage_path}
-                  alt={item.alt_text || item.title || 'Gallery image'}
-                  className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-                  loading="lazy"
-                />
-              </div>
-            ))}
+            {items.map((item, i) => {
+              const src = resolveImageUrl(item.storage_path, 'gallery-images')
+              return (
+                <div
+                  key={item.id}
+                  className={`relative overflow-hidden rounded-xl ${i === 0 ? 'row-span-2' : ''}`}
+                  style={{ background: 'var(--color-neutral-200)', aspectRatio: i === 0 ? 'auto' : '4/3' }}
+                >
+                  {src ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={src}
+                      alt={item.alt_text || item.title || 'Gallery image'}
+                      className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-xs text-neutral-400">No image</div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         ) : (
           <div
             className="rounded-2xl flex flex-col items-center justify-center py-20 gap-4"
             style={{ background: 'var(--color-neutral-100)', border: '2px dashed var(--color-border)' }}
           >
-            <Image size={40} strokeWidth={1} style={{ color: 'var(--color-text-subtle)' }} />
+            <ImageIcon size={40} strokeWidth={1} style={{ color: 'var(--color-text-subtle)' }} />
             <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
               Gallery images will appear here once added from the admin panel.
             </p>
